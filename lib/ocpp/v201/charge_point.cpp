@@ -2311,7 +2311,7 @@ void ChargePoint::notify_ev_charging_needs_req(NotifyEVChargingNeedsRequest& req
     if (this->ocpp_version != OcppProtocolVersion::v21) {
         req.timestamp = std::nullopt; // field is not present in OCPP2.0.1
     }
-    
+
     ocpp::Call<NotifyEVChargingNeedsRequest> call(req);
     this->message_dispatcher->dispatch_call(call);
 }

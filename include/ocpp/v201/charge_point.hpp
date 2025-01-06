@@ -274,8 +274,8 @@ public:
     /// \param status           The status.
     virtual void on_reservation_status(const int32_t reservation_id, const ReservationUpdateStatusEnum status) = 0;
 
-    /// \brief Event handler that should be called when the charging station receives a ChargeParameterDiscoveryReq from the CSMS
-    /// \param request specifies the parameters sent from the EV to the charging station
+    /// \brief Event handler that should be called when the charging station receives a ChargeParameterDiscoveryReq from
+    /// the CSMS \param request specifies the parameters sent from the EV to the charging station
     virtual void on_ev_charging_needs(NotifyEVChargingNeedsRequest& request) = 0;
 
     /// @}  // End handlers group
