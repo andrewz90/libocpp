@@ -355,7 +355,8 @@ public:
     /// \param duration How long the schedule should be
     /// \param unit ChargingRateUnit to thet the schedule for
     /// \return the composite schedule if the operation was successful, otherwise nullopt
-    virtual std::optional<CompositeSchedule> get_composite_schedule(int32_t evse_id, std::chrono::seconds duration, ChargingRateUnitEnum unit) = 0;
+    virtual std::optional<CompositeSchedule> get_composite_schedule(int32_t evse_id, std::chrono::seconds duration,
+                                                                    ChargingRateUnitEnum unit) = 0;
 
     /// \brief Gets composite schedules for all evse_ids (including 0) for the given \p duration and \p unit . If no
     /// valid profiles are given for an evse for the specified period, the composite schedule will be empty for this
@@ -495,9 +496,8 @@ private:
 
     void trigger_authorization_cache_cleanup();
     void cache_cleanup_handler();
-    GetCompositeScheduleResponse
-    get_composite_schedule_internal(const GetCompositeScheduleRequest& request,
-                                    bool simulate_transaction_active = true);
+    GetCompositeScheduleResponse get_composite_schedule_internal(const GetCompositeScheduleRequest& request,
+                                                                 bool simulate_transaction_active = true);
 
     void message_callback(const std::string& message);
     void update_aligned_data_interval();
@@ -971,7 +971,8 @@ public:
 
     GetCompositeScheduleResponse get_composite_schedule(const GetCompositeScheduleRequest& request) override;
 
-    std::optional<CompositeSchedule> get_composite_schedule(int32_t evse_id, std::chrono::seconds duration, ChargingRateUnitEnum unit) override;
+    std::optional<CompositeSchedule> get_composite_schedule(int32_t evse_id, std::chrono::seconds duration,
+                                                            ChargingRateUnitEnum unit) override;
 
     std::vector<CompositeSchedule> get_all_composite_schedules(const int32_t duration,
                                                                const ChargingRateUnitEnum& unit) override;
