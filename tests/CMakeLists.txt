@@ -1,3 +1,5 @@
+include(ProcessorCount)
+
 set(CONFIG_DIR_V16 "${CMAKE_CURRENT_BINARY_DIR}/resources/v16/")
 set(MIGRATION_FILES_LOCATION_V16 "${CMAKE_CURRENT_BINARY_DIR}/resources/v16/migration_files")
 set(MIGRATION_FILES_LOCATION_V201 "${CMAKE_CURRENT_BINARY_DIR}/resources/v201/migration_files")
@@ -79,6 +81,8 @@ target_link_libraries(libocpp_unit_tests PRIVATE
         GTest::gtest_main
 )
 
+set(GCOVR_DEPENDENCIES libocpp_unit_tests)
+
 add_subdirectory(lib/ocpp/common)
 
 if(LIBOCPP_ENABLE_V16)
@@ -89,16 +93,39 @@ if(LIBOCPP_ENABLE_V201)
     add_subdirectory(lib/ocpp/v201)
 endif()
 
+# If ev-coverage is installed, remove gcda files and orphaned object / gcno files.
+find_program(EV_COVERAGE ev-coverage)
+
+if (NOT EV_COVERAGE)
+    message("The \"ev-dev-tools\" Python3 package is not installed. You can install it going to
+        `everest-utils/ev-dev-tools` and type `pip install .`")
+else()
+    add_custom_target(cleanup_coverage
+        COMMAND
+            ${EV_COVERAGE}
+                remove_files
+                --source-dirs=${LIBOCPP_ROOT_SRC_DIR}
+                --build-dir=${LIBOCPP_ROOT_BUILD_DIR})
+    list(APPEND GCOVR_DEPENDENCIES cleanup_coverage)
+endif()
+
+# Run gcovr with the number of processors in this system
+ProcessorCount(number_of_procs)
+if(number_of_procs EQUAL 0)
+    set(number_of_procs 1)
+endif()
+set(GCOVR_ADDITIONAL_ARGS "-j;${number_of_procs}")
+
 setup_target_for_coverage_gcovr_html(
     NAME ${PROJECT_NAME}_gcovr_coverage
     EXECUTABLE ctest
-    DEPENDENCIES libocpp_unit_tests
+    DEPENDENCIES libocpp_unit_tests ${GCOVR_DEPENDENCIES}
     EXCLUDE "src/*" "tests/*"
 )
 
 setup_target_for_coverage_gcovr_xml(
     NAME ${PROJECT_NAME}_gcovr_coverage_xml
     EXECUTABLE ctest
-    DEPENDENCIES libocpp_unit_tests
+    DEPENDENCIES libocpp_unit_tests ${GCOVR_DEPENDENCIES}
     EXCLUDE "src/*" "tests/*"
 )
