@@ -35,6 +35,7 @@
 
 #include "mocks/database_handler_fake.hpp"
 
+#include "smart_charging_matchers.hpp"
 #include "smart_charging_test_utils.hpp"
 
 #include <sstream>
@@ -199,13 +200,19 @@ protected:
 
     std::unique_ptr<DatabaseHandlerFake> database_handler{};
 
-    TestSmartChargingHandler create_smart_charging_handler() {
+    std::unique_ptr<TestSmartChargingHandler> create_smart_charging_handler() {
         std::unique_ptr<common::DatabaseConnection> database_connection =
             std::make_unique<common::DatabaseConnection>(fs::path("/tmp/ocpp201") / "cp.db");
         this->database_handler =
             std::make_unique<DatabaseHandlerFake>(std::move(database_connection), MIGRATION_FILES_LOCATION_V201);
         database_handler->open_connection();
-        return TestSmartChargingHandler(*this->evse_manager, device_model, *database_handler);
+        return std::make_unique<TestSmartChargingHandler>(*this->evse_manager, device_model, *database_handler);
+    }
+
+    void reconfigure_for_nr_of_evses(int32_t nr_of_evses) {
+        this->evse_manager = std::make_unique<EvseManagerFake>(nr_of_evses);
+        this->handler = std::make_unique<TestSmartChargingHandler>(*this->evse_manager, this->device_model,
+                                                                   *this->database_handler);
     }
 
     // Default values used within the tests
@@ -215,11 +222,11 @@ protected:
 
     bool ignore_no_transaction = true;
     std::shared_ptr<DeviceModel> device_model = create_device_model();
-    TestSmartChargingHandler handler = create_smart_charging_handler();
+    std::unique_ptr<TestSmartChargingHandler> handler = create_smart_charging_handler();
     boost::uuids::random_generator uuid_generator = boost::uuids::random_generator();
 };
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_FoundationTest_Grid) {
+TEST_F(CompositeScheduleTestFixtureV201, FoundationTest_Grid) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/grid/", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -331,13 +338,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_Foundati
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredTest_SameStartTime) {
+TEST_F(CompositeScheduleTestFixtureV201, LayeredTest_SameStartTime) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/layered/", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -358,8 +365,8 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredT
         expected.scheduleStart = start_time;
         expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-        CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                        ChargingRateUnitEnum::W, false, false);
+        CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                         ChargingRateUnitEnum::W, false, false);
 
         ASSERT_EQ(actual, expected);
     }
@@ -384,8 +391,8 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredT
         expected.scheduleStart = start_time;
         expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-        CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                        ChargingRateUnitEnum::W, false, false);
+        CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                         ChargingRateUnitEnum::W, false, false);
 
         ASSERT_EQ(actual, expected);
     }
@@ -415,14 +422,14 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredT
         expected.scheduleStart = start_time;
         expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-        CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                        ChargingRateUnitEnum::W, false, false);
+        CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                         ChargingRateUnitEnum::W, false, false);
 
         ASSERT_EQ(actual, expected);
     }
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredRecurringTest_FutureStartTime) {
+TEST_F(CompositeScheduleTestFixtureV201, LayeredRecurringTest_FutureStartTime) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/layered_recurring/", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -441,13 +448,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredR
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredTest_PreviousStartTime) {
+TEST_F(CompositeScheduleTestFixtureV201, LayeredTest_PreviousStartTime) {
     this->load_charging_profiles_for_evse("singles/TXProfile_Absolute_Start18-04.json", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -469,13 +476,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredT
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredRecurringTest_PreviousStartTime) {
+TEST_F(CompositeScheduleTestFixtureV201, LayeredRecurringTest_PreviousStartTime) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/layered_recurring/", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -505,8 +512,8 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredR
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
@@ -514,7 +521,7 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_LayeredR
 /**
  * Calculate Composite Schedule
  */
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_ValidateBaselineProfileVector) {
+TEST_F(CompositeScheduleTestFixtureV201, ValidateBaselineProfileVector) {
     const DateTime start_time = ocpp::DateTime("2024-01-17T18:01:00");
     const DateTime end_time = ocpp::DateTime("2024-01-18T06:00:00");
     std::vector<ChargingProfile> profiles = SmartChargingTestUtils::get_baseline_profile_vector();
@@ -543,13 +550,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_Validate
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_RelativeProfile_minutia) {
+TEST_F(CompositeScheduleTestFixtureV201, RelativeProfile_minutia) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/relative/", DEFAULT_EVSE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-05-17T05:00:00");
@@ -569,13 +576,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_Relative
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_RelativeProfile_e2e) {
+TEST_F(CompositeScheduleTestFixtureV201, RelativeProfile_e2e) {
     const DateTime start_time = ocpp::DateTime("2024-05-17T05:00:00");
     const DateTime end_time = ocpp::DateTime("2024-05-17T06:01:00");
 
@@ -599,13 +606,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_Relative
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_DemoCaseOne_17th) {
+TEST_F(CompositeScheduleTestFixtureV201, DemoCaseOne_17th) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/case_one/", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -632,13 +639,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_DemoCase
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_DemoCaseOne_19th) {
+TEST_F(CompositeScheduleTestFixtureV201, DemoCaseOne_19th) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/case_one/", DEFAULT_EVSE_ID);
 
     evse_manager->open_transaction(DEFAULT_EVSE_ID, DEFAULT_TX_ID);
@@ -661,13 +668,13 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_DemoCase
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
 
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_MaxOverridesHigherLimits) {
+TEST_F(CompositeScheduleTestFixtureV201, MaxOverridesHigherLimits) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/max/0/", STATION_WIDE_ID);
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/max/1/", DEFAULT_EVSE_ID);
 
@@ -691,12 +698,12 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_MaxOverr
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_MaxOverridenByLowerLimits) {
+TEST_F(CompositeScheduleTestFixtureV201, MaxOverridenByLowerLimits) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/max/0/", STATION_WIDE_ID);
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/max/1/", DEFAULT_EVSE_ID);
 
@@ -720,12 +727,12 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_MaxOverr
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_ExternalOverridesHigherLimits) {
+TEST_F(CompositeScheduleTestFixtureV201, ExternalOverridesHigherLimits) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/external/0/", STATION_WIDE_ID);
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/external/1/", DEFAULT_EVSE_ID);
 
@@ -749,12 +756,12 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_External
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
     ASSERT_EQ(actual, expected);
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_ExternalOverridenByLowerLimits) {
+TEST_F(CompositeScheduleTestFixtureV201, ExternalOverridenByLowerLimits) {
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/external/0/", STATION_WIDE_ID);
     this->load_charging_profiles_for_evse(BASE_JSON_PATH + "/external/1/", DEFAULT_EVSE_ID);
 
@@ -778,8 +785,8 @@ TEST_F(CompositeScheduleTestFixtureV201, K08_CalculateCompositeSchedule_External
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::W;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::W, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, false);
     ASSERT_EQ(actual, expected);
 }
 
@@ -823,10 +830,244 @@ TEST_F(CompositeScheduleTestFixtureV201, OCTT_TC_K_41_CS) {
     expected.scheduleStart = start_time;
     expected.chargingRateUnit = ChargingRateUnitEnum::A;
 
-    CompositeSchedule actual = handler.calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
-                                                                    ChargingRateUnitEnum::A, false, false);
+    CompositeSchedule actual = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::A, false, false);
 
     ASSERT_EQ(actual, expected);
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, SingleStationMaxForEvse0) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-08-21T08:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-08-21T09:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, false);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 24.0F, 1),
+                    PeriodEqualsWithPhases(  900, 28.0F, 1),
+                    PeriodEqualsWithPhases( 1800, 30.0F, 1),
+                    PeriodEqualsWithPhases( 2700, 32.0F, 1)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithSingleEvse) {
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", STATION_WIDE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F, 3),
+                    PeriodEqualsWithPhases( 1800, 15.0F, 3),
+                    PeriodEqualsWithPhases( 2700, 14.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMultipleEvses) {
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", STATION_WIDE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+
+    constexpr int32_t nr_of_evses = 2;
+
+    this->reconfigure_for_nr_of_evses(nr_of_evses);
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, nr_of_evses * 16.0F, 3),
+                    PeriodEqualsWithPhases( 1800, nr_of_evses * 15.0F, 3),
+                    PeriodEqualsWithPhases( 2700, nr_of_evses * 14.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithSingleEvse) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F, 1),
+                    PeriodEqualsWithPhases( 1800, 15.0F, 1),
+                    PeriodEqualsWithPhases( 2700, 14.0F, 1)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithMultipleEvses) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", 2);
+
+    constexpr int32_t nr_of_evses = 2;
+
+    this->reconfigure_for_nr_of_evses(nr_of_evses);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 24.0F, 1),
+                    PeriodEqualsWithPhases(  900, 28.0F, 1),
+                    PeriodEqualsWithPhases( 1800, 30.0F, 1),
+                    PeriodEqualsWithPhases( 2700, 28.0F, 1)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_16A_1P) {
+    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T00:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T01:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F, 1),
+                    PeriodEqualsWithPhases( 1200,  9.0F, 1)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_16A_3P) {
+    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T01:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T02:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F, 3),
+                    PeriodEqualsWithPhases(  300, 12.0F, 3),
+                    PeriodEqualsWithPhases(  600,  9.0F, 3),
+                    PeriodEqualsWithPhases(  900,  6.0F, 3),
+                    PeriodEqualsWithPhases( 1200,  3.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_1P) {
+    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T02:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T03:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 10.0F, 1),
+                    PeriodEqualsWithPhases( 1200,  9.0F, 1)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_3P) {
+    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T03:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T04:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 10.0F, 3),
+                    PeriodEqualsWithPhases(  600,  9.0F, 3),
+                    PeriodEqualsWithPhases(  900,  6.0F, 3),
+                    PeriodEqualsWithPhases( 1200,  3.0F, 3)
+                ));
+    // clang-format on
 }
 
 } // namespace ocpp::v201

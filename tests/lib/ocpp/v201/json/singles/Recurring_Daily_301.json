@@ -8,15 +8,15 @@
             "chargingRateUnit": "A",
             "chargingSchedulePeriod": [
                 {
-                    "limit": 32.0,
+                    "limit": 16.0,
                     "startPeriod": 0
                 },
                 {
-                    "limit": 31.0,
+                    "limit": 15.0,
                     "startPeriod": 1800
                 },
                 {
-                    "limit": 30.0,
+                    "limit": 14.0,
                     "startPeriod": 2700
                 }
             ],
