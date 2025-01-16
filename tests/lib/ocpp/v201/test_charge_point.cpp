@@ -870,7 +870,7 @@ TEST_F(ChargePointFunctionalityTestFixtureV201, K08_GetCompositeSchedule_CallsCa
         request_to_enhanced_message<GetCompositeScheduleRequest, MessageType::GetCompositeSchedule>(req);
 
     EXPECT_CALL(*smart_charging_handler, calculate_composite_schedule(testing::_, testing::_, DEFAULT_EVSE_ID,
-                                                                      req.chargingRateUnit, testing::_, true));
+                                                                      req.chargingRateUnit.value(), testing::_, true));
 
     charge_point->handle_message(get_composite_schedule_req);
 }
@@ -893,7 +893,7 @@ TEST_F(ChargePointFunctionalityTestFixtureV201,
     };
 
     EXPECT_CALL(*smart_charging_handler, calculate_composite_schedule(testing::_, testing::_, DEFAULT_EVSE_ID,
-                                                                      req.chargingRateUnit, testing::_, true));
+                                                                      req.chargingRateUnit.value(), testing::_, true));
 
     charge_point->handle_message(get_composite_schedule_req);
 }

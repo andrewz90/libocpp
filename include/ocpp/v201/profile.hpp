@@ -77,7 +77,7 @@ std::vector<period_entry_t> calculate_profile(const DateTime& now, const DateTim
 /// charging amp and watt limits is required \return the calculated composite schedule
 CompositeSchedule calculate_composite_schedule(std::vector<period_entry_t>& combined_schedules, const DateTime& now,
                                                const DateTime& end,
-                                               std::optional<ChargingRateUnitEnum> charging_rate_unit,
+                                               ChargingRateUnitEnum charging_rate_unit,
                                                int32_t default_number_phases, int32_t supply_voltage);
 
 /// \brief calculate the combined composite schedule from all of the different types of

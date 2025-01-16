@@ -61,15 +61,15 @@ void update_itt(const int schedule_duration, std::vector<ocpp::v201::ChargingSch
 }
 
 std::pair<float, std::int32_t> convert_limit(const ocpp::v201::period_entry_t* const entry,
-                                             const ocpp::v201::ChargingRateUnitEnum selected_unit,
+                                             const ocpp::v201::ChargingRateUnitEnum charging_rate_unit,
                                              int32_t default_number_phases, int32_t supply_voltage) {
     assert(entry != nullptr);
     float limit = entry->limit;
     std::int32_t number_phases = entry->number_phases.value_or(default_number_phases);
 
     // if the units are the same - don't change the values
-    if (selected_unit != entry->charging_rate_unit) {
-        if (selected_unit == ocpp::v201::ChargingRateUnitEnum::A) {
+    if (charging_rate_unit != entry->charging_rate_unit) {
+        if (charging_rate_unit == ocpp::v201::ChargingRateUnitEnum::A) {
             limit = entry->limit / (supply_voltage * number_phases);
         } else {
             limit = entry->limit * (supply_voltage * number_phases);
@@ -349,12 +349,8 @@ std::vector<period_entry_t> calculate_profile(const DateTime& now, const DateTim
 
 CompositeSchedule calculate_composite_schedule(std::vector<period_entry_t>& in_combined_schedules,
                                                const DateTime& in_now, const DateTime& in_end,
-                                               std::optional<ChargingRateUnitEnum> charging_rate_unit,
+                                               ChargingRateUnitEnum charging_rate_unit,
                                                int32_t default_number_phases, int32_t supply_voltage) {
-
-    // Defaults to ChargingRateUnitEnum::A if not set.
-    const ChargingRateUnitEnum selected_unit =
-        (charging_rate_unit) ? charging_rate_unit.value() : ChargingRateUnitEnum::A;
 
     const auto now = floor_seconds(in_now);
     const auto end = floor_seconds(in_end);
@@ -364,7 +360,7 @@ CompositeSchedule calculate_composite_schedule(std::vector<period_entry_t>& in_c
     composite.evseId = EVSEID_NOT_SET;
     composite.duration = elapsed_seconds(end, now);
     composite.scheduleStart = now;
-    composite.chargingRateUnit = selected_unit;
+    composite.chargingRateUnit = charging_rate_unit;
 
     // sort the combined_schedules in stack priority order
     struct {
@@ -405,7 +401,7 @@ CompositeSchedule calculate_composite_schedule(std::vector<period_entry_t>& in_c
         } else {
             // there is a schedule to use
             const auto [limit, number_phases] =
-                convert_limit(chosen, selected_unit, default_number_phases, supply_voltage);
+                convert_limit(chosen, charging_rate_unit, default_number_phases, supply_voltage);
 
             ChargingSchedulePeriod charging_schedule_period{elapsed_seconds(current, now), limit, std::nullopt,
                                                             number_phases};

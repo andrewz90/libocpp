@@ -592,7 +592,7 @@ SmartChargingHandler::verify_no_conflicting_external_constraints_id(const Chargi
 
 CompositeSchedule SmartChargingHandler::calculate_composite_schedule(
     const ocpp::DateTime& start_time, const ocpp::DateTime& end_time, const int32_t evse_id,
-    std::optional<ChargingRateUnitEnum> charging_rate_unit, bool is_offline, bool simulate_transaction_active) {
+    ChargingRateUnitEnum charging_rate_unit, bool is_offline, bool simulate_transaction_active) {
 
     std::vector<ChargingProfilePurposeEnum> purposes_to_ignore = utils::get_purposes_to_ignore(
         this->device_model->get_optional_value<std::string>(ControllerComponentVariables::IgnoredProfilePurposesOffline)

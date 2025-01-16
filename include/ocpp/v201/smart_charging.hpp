@@ -94,7 +94,7 @@ public:
 
     virtual CompositeSchedule calculate_composite_schedule(const ocpp::DateTime& start_time,
                                                            const ocpp::DateTime& end_time, const int32_t evse_id,
-                                                           std::optional<ChargingRateUnitEnum> charging_rate_unit,
+                                                           ChargingRateUnitEnum charging_rate_unit,
                                                            bool is_offline, bool simulate_transaction_active) = 0;
 };
 
@@ -157,7 +157,7 @@ public:
     ///
     CompositeSchedule calculate_composite_schedule(const ocpp::DateTime& start_time, const ocpp::DateTime& end_time,
                                                    const int32_t evse_id,
-                                                   std::optional<ChargingRateUnitEnum> charging_rate_unit,
+                                                   ChargingRateUnitEnum charging_rate_unit,
                                                    bool is_offline, bool simulate_transaction_active) override;
 
 protected:
