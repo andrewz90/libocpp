@@ -1001,7 +1001,6 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxFor
     // clang-format on
 }
 
-
 TEST_F(CompositeScheduleTestFixtureV201, TxProfilePerEvseWithMultipleEvses) {
     this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
     this->load_charging_profiles_for_evse("singles/Relative_303.json", 2);
@@ -1025,12 +1024,12 @@ TEST_F(CompositeScheduleTestFixtureV201, TxProfilePerEvseWithMultipleEvses) {
     // clang-format off
     EXPECT_THAT(result.chargingSchedulePeriod,
                 testing::ElementsAre(
-                    PeriodEqualsWithPhases(    0, 16.0F + 16.0F, 3),
-                    PeriodEqualsWithPhases( 1740, 15.0F + 16.0F, 3),
-                    PeriodEqualsWithPhases( 1800, 15.0F + 15.0F, 3),
-                    PeriodEqualsWithPhases( 2640, 14.0F + 15.0F, 3),
-                    PeriodEqualsWithPhases( 2700, 14.0F + 14.0F, 3),
-                    PeriodEqualsWithPhases( 3540, 48.0F + 14.0F, 3)
+                    PeriodEqualsWithPhases(    0, 32.0F, 3),
+                    PeriodEqualsWithPhases( 1740, 31.0F, 3),
+                    PeriodEqualsWithPhases( 1800, 30.0F, 3),
+                    PeriodEqualsWithPhases( 2640, 29.0F, 3),
+                    PeriodEqualsWithPhases( 2700, 28.0F, 3),
+                    PeriodEqualsWithPhases( 3540, 62.0F, 3)
                 ));
     // clang-format on
 }
@@ -1209,9 +1208,9 @@ TEST_F(CompositeScheduleTestFixtureV201, TxProfilePerEvseWithMultipleEvses_Diffe
     // clang-format off
     EXPECT_THAT(result.chargingSchedulePeriod,
                 testing::ElementsAre(
-                    PeriodEqualsWithPhases(    0, 16.0F + 16.0F, 3),
-                    PeriodEqualsWithPhases( 1800, 15.0F + 15.0F, 1),
-                    PeriodEqualsWithPhases( 2700, 14.0F + 14.0F, 3)
+                    PeriodEqualsWithPhases(    0, 32.0F, 3),
+                    PeriodEqualsWithPhases( 1800, 30.0F, 1),
+                    PeriodEqualsWithPhases( 2700, 28.0F, 3)
                 ));
     // clang-format on
 }

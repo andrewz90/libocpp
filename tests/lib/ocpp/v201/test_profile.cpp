@@ -689,7 +689,8 @@ TEST(OCPPTypesTest, ChargingSchedule_Equality) {
 //     expected.scheduleStart = dt("12:00");
 //     expected.chargingRateUnit = ChargingRateUnitEnum::A;
 
-//     CompositeSchedule actual = calculate_composite_schedule(combined_schedules, dt("12:00"), dt("12:10"), std::nullopt,
+//     CompositeSchedule actual = calculate_composite_schedule(combined_schedules, dt("12:00"), dt("12:10"),
+//     std::nullopt,
 //                                                             DEFAULT_AND_MAX_NUMBER_PHASES, LOW_VOLTAGE);
 
 //     ASSERT_EQ(expected, actual);
@@ -772,8 +773,8 @@ TEST(OCPPTypesTest, ChargingSchedule_Equality) {
 //     DateTime now = dt("12:00");
 //     DateTime end = dt("12:10");
 //     std::vector<period_entry_t> combined_schedules{{DateTime(now.to_time_point() + seconds(1)),
-//                                                     DateTime(end.to_time_point() - seconds(1)), 24.0, 3, std::nullopt,
-//                                                     1, ChargingRateUnitEnum::A, std::nullopt}};
+//                                                     DateTime(end.to_time_point() - seconds(1)), 24.0, 3,
+//                                                     std::nullopt, 1, ChargingRateUnitEnum::A, std::nullopt}};
 
 //     ChargingSchedulePeriod period1;
 //     period1.startPeriod = 0;
@@ -1158,7 +1159,8 @@ TEST(OCPPTypesTest, ChargingSchedule_Equality) {
 //     expected.scheduleStart = DEFAULT_SCHEDULE.scheduleStart;
 //     expected.chargingRateUnit = DEFAULT_SCHEDULE.chargingRateUnit;
 
-//     const CompositeSchedule actual = calculate_composite_schedule(DEFAULT_SCHEDULE, DEFAULT_SCHEDULE, DEFAULT_SCHEDULE,
+//     const CompositeSchedule actual = calculate_composite_schedule(DEFAULT_SCHEDULE, DEFAULT_SCHEDULE,
+//     DEFAULT_SCHEDULE,
 //                                                                   DEFAULT_SCHEDULE, DEFAULT_LIMITS, LOW_VOLTAGE);
 
 //     ASSERT_EQ(expected, actual);
