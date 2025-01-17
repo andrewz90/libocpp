@@ -464,7 +464,6 @@ TEST_F(CompositeScheduleTestFixtureV201, LayeredTest_PreviousStartTime) {
     ChargingSchedulePeriod period1;
     period1.startPeriod = 0;
     period1.limit = DEFAULT_LIMIT_WATTS;
-    period1.numberPhases = DEFAULT_AND_MAX_NUMBER_PHASES;
     ChargingSchedulePeriod period2;
     period2.startPeriod = 240;
     period2.limit = 2000;
@@ -862,7 +861,7 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleStationMaxForEvse0) {
 }
 
 TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithSingleEvse) {
-    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_301.json", STATION_WIDE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
@@ -885,8 +884,8 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithSingl
     // clang-format on
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMultipleEvses) {
-    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", STATION_WIDE_ID);
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMultipleEvses_Current) {
+    this->load_charging_profiles_for_evse("singles/Relative_301.json", STATION_WIDE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
@@ -913,12 +912,44 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMulti
     // clang-format on
 }
 
-TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithSingleEvse) {
-    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMultipleEvses_Power) {
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", STATION_WIDE_ID);
 
+    constexpr int32_t nr_of_evses = 2;
+
+    this->reconfigure_for_nr_of_evses(nr_of_evses);
+
+    // Note the time is 1 minute off the whole hour
     const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 36.0F, 3),
+                    PeriodEqualsWithPhases(  300, 24.0F, 3),
+                    PeriodEqualsWithPhases(  600, 18.0F, 3),
+                    PeriodEqualsWithPhases(  900, 12.0F, 3),
+                    PeriodEqualsWithPhases( 1200,  6.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithSingleEvse) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_301.json", DEFAULT_EVSE_ID);
+
+    // Note the time is 1 minute off the whole hour
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:01:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:01:00");
 
     CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
                                                                      ChargingRateUnitEnum::A, false, true);
@@ -940,15 +971,16 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxFor
 
 TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithMultipleEvses) {
     this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
-    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", 2);
+    this->load_charging_profiles_for_evse("singles/Relative_301.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_301.json", 2);
 
     constexpr int32_t nr_of_evses = 2;
 
     this->reconfigure_for_nr_of_evses(nr_of_evses);
 
-    const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
-    const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+    // Note the time is 1 minute off the whole hour
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:01:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:01:00");
 
     CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
                                                                      ChargingRateUnitEnum::A, false, true);
@@ -962,16 +994,50 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxFor
     EXPECT_THAT(result.chargingSchedulePeriod,
                 testing::ElementsAre(
                     PeriodEqualsWithPhases(    0, 24.0F, 1),
-                    PeriodEqualsWithPhases(  900, 28.0F, 1),
-                    PeriodEqualsWithPhases( 1800, 30.0F, 1),
+                    PeriodEqualsWithPhases(  840, 28.0F, 1),
+                    PeriodEqualsWithPhases( 1740, 30.0F, 1),
                     PeriodEqualsWithPhases( 2700, 28.0F, 1)
                 ));
     // clang-format on
 }
 
+
+TEST_F(CompositeScheduleTestFixtureV201, TxProfilePerEvseWithMultipleEvses) {
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_301.json", 2);
+
+    constexpr int32_t nr_of_evses = 2;
+
+    this->reconfigure_for_nr_of_evses(nr_of_evses);
+
+    // Note the time is 1 minute off the whole hour
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:01:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:01:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F + 16.0F, 3),
+                    PeriodEqualsWithPhases( 1740, 15.0F + 16.0F, 3),
+                    PeriodEqualsWithPhases( 1800, 15.0F + 15.0F, 3),
+                    PeriodEqualsWithPhases( 2640, 14.0F + 15.0F, 3),
+                    PeriodEqualsWithPhases( 2700, 14.0F + 14.0F, 3),
+                    PeriodEqualsWithPhases( 3540, 48.0F + 14.0F, 3)
+                ));
+    // clang-format on
+}
+
 TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_16A_1P) {
-    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T00:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T01:00:00");
@@ -994,8 +1060,8 @@ TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_16A_1P) {
 }
 
 TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_16A_3P) {
-    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T01:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T02:00:00");
@@ -1021,8 +1087,8 @@ TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_16A_3P) {
 }
 
 TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_1P) {
-    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T02:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T03:00:00");
@@ -1045,8 +1111,8 @@ TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_1P) {
 }
 
 TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_3P) {
-    this->load_charging_profiles_for_evse("mixing_units/0/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("mixing_units/1/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T03:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T04:00:00");
@@ -1066,6 +1132,113 @@ TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_3P) {
                     PeriodEqualsWithPhases(  600,  9.0F, 3),
                     PeriodEqualsWithPhases(  900,  6.0F, 3),
                     PeriodEqualsWithPhases( 1200,  3.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_1P_RequestPower) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T02:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T03:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::W);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 2300.0F, 1),
+                    PeriodEqualsWithPhases( 1200, 2070.0F, 1)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingCurrentAndPower_10A_3P_RequestPower) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/TXDefaultProfile_25_Watt.json", DEFAULT_EVSE_ID);
+
+    const DateTime start_time = ocpp::DateTime("2024-01-02T03:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T04:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::W, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::W);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 6900.0F, 3),
+                    PeriodEqualsWithPhases(  600, 6210.0F, 3),
+                    PeriodEqualsWithPhases(  900, 4140.0F, 3),
+                    PeriodEqualsWithPhases( 1200, 2070.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, TxProfilePerEvseWithMultipleEvses_DifferentNrOfPhases) {
+    this->load_charging_profiles_for_evse("singles/Recurring_Daily_302_phase_limit.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_302_phase_limit.json", 2);
+
+    constexpr int32_t nr_of_evses = 2;
+
+    this->reconfigure_for_nr_of_evses(nr_of_evses);
+
+    // Note the time is 1 minute off the whole hour
+    const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, STATION_WIDE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, STATION_WIDE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F + 16.0F, 3),
+                    PeriodEqualsWithPhases( 1800, 15.0F + 15.0F, 1),
+                    PeriodEqualsWithPhases( 2700, 14.0F + 14.0F, 3)
+                ));
+    // clang-format on
+}
+
+TEST_F(CompositeScheduleTestFixtureV201, MixingNumberOfPhasesOnSingleEvse) {
+    this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_24_Ampere.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_302_phase_limit.json", DEFAULT_EVSE_ID);
+
+    // Note the time is 40 minute off the whole hour
+    const DateTime start_time = ocpp::DateTime("2024-01-02T00:40:00");
+    const DateTime end_time = ocpp::DateTime("2024-01-02T01:40:00");
+
+    CompositeSchedule result = handler->calculate_composite_schedule(start_time, end_time, DEFAULT_EVSE_ID,
+                                                                     ChargingRateUnitEnum::A, false, true);
+
+    EXPECT_EQ(result.evseId, DEFAULT_EVSE_ID);
+    EXPECT_EQ(result.scheduleStart, start_time);
+    EXPECT_EQ(result.duration, 3600);
+    EXPECT_EQ(result.chargingRateUnit, ChargingRateUnitEnum::A);
+
+    // clang-format off
+    EXPECT_THAT(result.chargingSchedulePeriod,
+                testing::ElementsAre(
+                    PeriodEqualsWithPhases(    0, 16.0F, 1),
+                    PeriodEqualsWithPhases( 1200, 16.0F, 3),
+                    PeriodEqualsWithPhases( 1800, 15.0F, 1),
+                    PeriodEqualsWithPhases( 2700, 14.0F, 3)
                 ));
     // clang-format on
 }
