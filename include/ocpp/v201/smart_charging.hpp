@@ -215,8 +215,6 @@ private:
     /// response.
     ///
     std::vector<ChargingProfile>
-    get_valid_profiles(int32_t evse_id, const std::vector<ChargingProfilePurposeEnum>& purposes_to_ignore = {});
-    std::vector<ChargingProfile>
     get_valid_profiles_for_evse(int32_t evse_id,
                                 const std::vector<ChargingProfilePurposeEnum>& purposes_to_ignore = {});
     void conform_schedule_number_phases(int32_t profile_id, ChargingSchedulePeriod& charging_schedule_period) const;
