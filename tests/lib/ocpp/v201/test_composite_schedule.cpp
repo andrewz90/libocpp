@@ -861,7 +861,7 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleStationMaxForEvse0) {
 }
 
 TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithSingleEvse) {
-    this->load_charging_profiles_for_evse("singles/Relative_301.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_303.json", STATION_WIDE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
@@ -885,7 +885,7 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithSingl
 }
 
 TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMultipleEvses_Current) {
-    this->load_charging_profiles_for_evse("singles/Relative_301.json", STATION_WIDE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_303.json", STATION_WIDE_ID);
 
     const DateTime start_time = ocpp::DateTime("2024-01-02T08:00:00");
     const DateTime end_time = ocpp::DateTime("2024-01-02T09:00:00");
@@ -945,7 +945,7 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileForEvse0WithMulti
 
 TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithSingleEvse) {
     this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("singles/Relative_301.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_303.json", DEFAULT_EVSE_ID);
 
     // Note the time is 1 minute off the whole hour
     const DateTime start_time = ocpp::DateTime("2024-01-02T08:01:00");
@@ -971,8 +971,8 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxFor
 
 TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxForEvse0WithMultipleEvses) {
     this->load_charging_profiles_for_evse("singles/ChargingStationMaxProfile_401.json", STATION_WIDE_ID);
-    this->load_charging_profiles_for_evse("singles/Relative_301.json", DEFAULT_EVSE_ID);
-    this->load_charging_profiles_for_evse("singles/Relative_301.json", 2);
+    this->load_charging_profiles_for_evse("singles/Relative_303.json", DEFAULT_EVSE_ID);
+    this->load_charging_profiles_for_evse("singles/Relative_303.json", 2);
 
     constexpr int32_t nr_of_evses = 2;
 
@@ -1004,7 +1004,7 @@ TEST_F(CompositeScheduleTestFixtureV201, SingleTxDefaultProfileWithStationMaxFor
 
 TEST_F(CompositeScheduleTestFixtureV201, TxProfilePerEvseWithMultipleEvses) {
     this->load_charging_profiles_for_evse("singles/Recurring_Daily_301.json", DEFAULT_EVSE_ID);
-    this->load_charging_profiles_for_evse("singles/Relative_301.json", 2);
+    this->load_charging_profiles_for_evse("singles/Relative_303.json", 2);
 
     constexpr int32_t nr_of_evses = 2;
 
