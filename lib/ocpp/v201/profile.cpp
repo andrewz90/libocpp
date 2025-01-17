@@ -264,8 +264,6 @@ std::vector<period_entry_t> calculate_profile_entry(const DateTime& in_now, cons
                 const auto now = floor_seconds(in_now);
 
                 if (entry.validate(in_profile, now)) {
-                    EVLOG_info << "Add entry with limit " << entry.limit << " and phases "
-                               << entry.number_phases.value_or(-2);
                     entries.push_back(std::move(entry));
                 }
             }
@@ -304,15 +302,11 @@ std::vector<period_entry_t> calculate_all_profiles(const DateTime& now, const Da
                                                    const std::optional<DateTime>& session_start,
                                                    const std::vector<ChargingProfile>& profiles,
                                                    ChargingProfilePurposeEnum purpose) {
-    EVLOG_info << "Filtering profiles with purpose: " << purpose;
     std::vector<period_entry_t> output;
     for (const auto& profile : profiles) {
         if (profile.chargingProfilePurpose == purpose) {
             std::vector<period_entry_t> periods = ocpp::v201::calculate_profile(now, end, session_start, profile);
-            EVLOG_info << "Found profile with purpose " << purpose << ", adding nr of periods: " << periods.size();
             output.insert(output.end(), periods.begin(), periods.end());
-        } else {
-            EVLOG_info << "Dropped profile with purpose: " << profile.chargingProfilePurpose;
         }
     }
     return output;
@@ -325,7 +319,6 @@ IntermediateProfile generate_profile_from_periods(std::vector<period_entry_t>& p
     const auto end = floor_seconds(in_end);
 
     if (periods.empty()) {
-        EVLOG_info << "No schedules so return a single no limit period";
         return {{0, NO_LIMIT_SPECIFIED, NO_LIMIT_SPECIFIED, std::nullopt, std::nullopt}};
     }
 
@@ -424,20 +417,14 @@ combine_list_of_profiles(const std::vector<IntermediateProfileRef>& profiles,
     period_pair_vector profile_iterators{};
     for (const auto& wrapped_profile : profiles) {
         auto& profile = wrapped_profile.get();
-        if (profile.empty()) {
-            EVLOG_info << "Skip profile with length " << profile.size();
-        } else {
+        if (!profile.empty()) {
             profile_iterators.push_back(std::make_pair(profile.begin(), profile.end()));
-            EVLOG_info << "Profile start length " << profile.size()
-                       << " and first phases: " << profile.at(0).numberPhases.value_or(-2);
         }
     }
 
-    int32_t limit = 100;
     int32_t current_period = 0;
     while (std::any_of(profile_iterators.begin(), profile_iterators.end(),
-                       [](const std::pair<period_iterator, period_iterator>& it) { return it.first != it.second; }) &&
-           --limit) {
+                       [](const std::pair<period_iterator, period_iterator>& it) { return it.first != it.second; })) {
 
         IntermediatePeriod period = combinator(profile_iterators);
         period.startPeriod = current_period;
@@ -446,11 +433,6 @@ combine_list_of_profiles(const std::vector<IntermediateProfileRef>& profiles,
             (period.power_limit != combined.back().power_limit) ||
             (period.numberPhases != combined.back().numberPhases)) {
             combined.push_back(period);
-            EVLOG_info << "Add period with cur " << period.current_limit << " and pow " << period.power_limit
-                       << " and time " << period.startPeriod << " phases " << period.numberPhases.value_or(-2);
-        } else {
-            EVLOG_info << "Skipped period with cur " << period.current_limit << " and pow " << period.power_limit
-                       << " and time " << period.startPeriod << " phases " << period.numberPhases.value_or(-2);
         }
 
         // Determine the next earliest period
@@ -478,10 +460,6 @@ combine_list_of_profiles(const std::vector<IntermediateProfileRef>& profiles,
         current_period = next_lowest_period;
     }
 
-    if (limit == 0) {
-        EVLOG_error << "Reached limit";
-    }
-
     if (combined.empty()) {
         combined.push_back({0, NO_LIMIT_SPECIFIED, NO_LIMIT_SPECIFIED, std::nullopt, std::nullopt});
     }
@@ -492,19 +470,12 @@ combine_list_of_profiles(const std::vector<IntermediateProfileRef>& profiles,
 IntermediateProfile merge_tx_profile_with_tx_default_profile(const IntermediateProfile& tx_profile,
                                                              const IntermediateProfile& tx_default_profile) {
 
-    EVLOG_info << "merge_tx_profile_with_tx_default_profile with lengths " << tx_profile.size() << " and "
-               << tx_default_profile.size();
-
     auto combinator = [](const period_pair_vector& periods) {
         IntermediatePeriod period{};
         period.current_limit = NO_LIMIT_SPECIFIED;
         period.power_limit = NO_LIMIT_SPECIFIED;
-        int index = 0;
-        for (const auto& [it, end] : periods) {
-            EVLOG_info << "Combine it " << index << " with cur " << it->current_limit << " and pow " << it->power_limit
-                       << ", time " << it->startPeriod << ", phases " << it->numberPhases.value_or(-2);
-            index++;
 
+        for (const auto& [it, end] : periods) {
             if (it->current_limit != NO_LIMIT_SPECIFIED || it->power_limit != NO_LIMIT_SPECIFIED) {
                 period.current_limit = it->current_limit;
                 period.power_limit = it->power_limit;
@@ -523,21 +494,12 @@ IntermediateProfile merge_tx_profile_with_tx_default_profile(const IntermediateP
 }
 
 IntermediateProfile merge_profiles_by_lowest_limit(const std::vector<IntermediateProfile>& profiles) {
-    EVLOG_info << "merge_profiles_by_lowest_limit";
-
-    for (auto& profile : profiles) {
-        EVLOG_info << "Len: " << profile.size();
-    }
-
     auto combinator = [](const period_pair_vector& periods) {
         IntermediatePeriod period{};
         period.current_limit = std::numeric_limits<float>::max();
         period.power_limit = std::numeric_limits<float>::max();
-        int index = 0;
+
         for (const auto& [it, end] : periods) {
-            EVLOG_info << "Combine it " << index << " with cur " << it->current_limit << " and pow " << it->power_limit
-                       << ", time " << it->startPeriod << ", phases " << it->numberPhases.value_or(-2);
-            index++;
             if (it->current_limit >= 0.0F && it->current_limit < period.current_limit) {
                 period.current_limit = it->current_limit;
             }
@@ -569,12 +531,6 @@ IntermediateProfile merge_profiles_by_lowest_limit(const std::vector<Intermediat
 
 IntermediateProfile merge_profiles_by_summing_limits(const std::vector<IntermediateProfile>& profiles,
                                                      float current_default, float power_default) {
-    EVLOG_info << "merge_profiles_by_summing_limits";
-
-    for (auto& profile : profiles) {
-        EVLOG_info << "Len: " << profile.size();
-    }
-
     auto combinator = [current_default, power_default](const period_pair_vector& periods) {
         IntermediatePeriod period{};
         if (periods.empty()) {
@@ -582,15 +538,10 @@ IntermediateProfile merge_profiles_by_summing_limits(const std::vector<Intermedi
             period.power_limit = NO_LIMIT_SPECIFIED;
             return period;
         }
-        int index = 0;
-        for (const auto& [it, end] : periods) {
-            EVLOG_info << "Combine it " << index << " with cur " << it->current_limit << " and pow " << it->power_limit
-                       << ", time " << it->startPeriod << ", phases " << it->numberPhases.value_or(-2);
-            index++;
 
+        for (const auto& [it, end] : periods) {
             period.current_limit += it->current_limit >= 0.0F ? it->current_limit : current_default;
             period.power_limit += it->power_limit >= 0.0F ? it->power_limit : power_default;
-
 
             // Copy number of phases if higher
             if (!period.numberPhases.has_value()) {
@@ -610,7 +561,6 @@ std::vector<ChargingSchedulePeriod>
 convert_intermediate_into_schedule(const IntermediateProfile& profile, ChargingRateUnitEnum charging_rate_unit,
                                    float default_limit, int32_t default_number_phases, float supply_voltage) {
 
-    EVLOG_info << "convert_intermediate_into_schedule";
     std::vector<ChargingSchedulePeriod> output{};
 
     for (const auto& period : profile) {
@@ -641,14 +591,8 @@ convert_intermediate_into_schedule(const IntermediateProfile& profile, ChargingR
         }
 
         if (output.empty() || (period_out.limit != output.back().limit) ||
-
             (period_out.numberPhases != output.back().numberPhases)) {
             output.push_back(period_out);
-            EVLOG_info << "Add period with limit " << period_out.limit << " and time " << period_out.startPeriod
-                       << " phases " << period_out.numberPhases.value_or(-2);
-        } else {
-            EVLOG_info << "Skipped period with limit " << period_out.limit << " and time " << period_out.startPeriod
-                       << " phases " << period_out.numberPhases.value_or(-2);
         }
     }
 

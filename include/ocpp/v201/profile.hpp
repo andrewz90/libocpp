@@ -6,7 +6,6 @@
 namespace ocpp {
 namespace v201 {
 
-
 struct IntermediatePeriod {
     int32_t startPeriod;
     float current_limit;
@@ -52,20 +51,14 @@ int32_t elapsed_seconds(const ocpp::DateTime& to, const ocpp::DateTime& from);
 /// \brief Rounds down the \param dt to the nearest second
 ocpp::DateTime floor_seconds(const ocpp::DateTime& dt);
 
-void convert_profile_to_unit(ChargingProfile& profile, ChargingRateUnitEnum wanted_charging_rate_unit,
-                                                  int32_t default_number_phases, int32_t supply_voltage);
-
-void convert_profiles_to_unit(std::vector<ChargingProfile>& profiles, ChargingRateUnitEnum wanted_charging_rate_unit,
-                              int32_t default_number_phases, int32_t supply_voltage);
-
-    /// \brief calculate the start times for the profile
-    /// \param now the current date and time
-    /// \param end the end of the composite schedule
-    /// \param session_start optional when the charging session started
-    /// \param profile the charging profile
-    /// \return a list of the start times of the profile
-    std::vector<DateTime> calculate_start(const DateTime& now, const DateTime& end,
-                                          const std::optional<DateTime>& session_start, const ChargingProfile& profile);
+/// \brief calculate the start times for the profile
+/// \param now the current date and time
+/// \param end the end of the composite schedule
+/// \param session_start optional when the charging session started
+/// \param profile the charging profile
+/// \return a list of the start times of the profile
+std::vector<DateTime> calculate_start(const DateTime& now, const DateTime& end,
+                                      const std::optional<DateTime>& session_start, const ChargingProfile& profile);
 
 /// \brief Calculates the period entries based upon the indicated time window for every profile passed in.
 /// \param now the current date and time
@@ -115,12 +108,17 @@ IntermediateProfile merge_tx_profile_with_tx_default_profile(const IntermediateP
 /// \brief Generates a new profile by taking the lowest limit of all the provided \param profiles
 IntermediateProfile merge_profiles_by_lowest_limit(const std::vector<IntermediateProfile>& profiles);
 
-/// \brief Generates a new profile by summing the limits of all the provided \param profiles
-IntermediateProfile merge_profiles_by_summing_limits(const std::vector<IntermediateProfile>& profiles, float current_default, float power_default);
+/// \brief Generates a new profile by summing the limits of all the provided \param profiles, filling in defaults
+/// wherever a profile has no limit
+IntermediateProfile merge_profiles_by_summing_limits(const std::vector<IntermediateProfile>& profiles,
+                                                     float current_default, float power_default);
 
 /// \brief Fills all the periods without a limit or a number of phases with the defaults provided
 void fill_gaps_with_defaults(IntermediateProfile& schedule, float default_limit, int32_t default_number_phases);
 
+/// \brief Convert an intermediate profile into a final charging schedule.
+/// This will fill in defaults and convert merge the current and power limits into the final \p charging_rate_unit based
+/// limit
 std::vector<ChargingSchedulePeriod>
 convert_intermediate_into_schedule(const IntermediateProfile& profile, ChargingRateUnitEnum charging_rate_unit,
                                    float default_limit, int32_t default_number_phases, float supply_voltage);
