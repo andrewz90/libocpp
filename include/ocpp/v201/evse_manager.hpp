@@ -37,6 +37,19 @@ public:
     /// \brief Get the number of evses
     virtual size_t get_number_of_evses() const = 0;
 
+    /// \brief Helper function to determine if there is any active transaction for the given \p evse
+    /// \param evse if optional is not set, this function will check if there is any transaction active f or the whole
+    /// charging station
+    /// \return
+    virtual bool any_transaction_active(const std::optional<EVSE>& evse) const = 0;
+
+    ///
+    /// \brief Check if the given evse is valid.
+    /// \param evse The evse to check.
+    /// \return True when evse is valid.
+    ///
+    virtual bool is_valid_evse(const EVSE& evse) const = 0;
+
     /// \brief Gets an iterator pointing to the first evse
     virtual EvseIterator begin() = 0;
     /// \brief Gets an iterator pointing past the last evse
@@ -62,6 +75,9 @@ public:
     bool does_evse_exist(const int32_t id) const override;
 
     size_t get_number_of_evses() const override;
+
+    bool any_transaction_active(const std::optional<EVSE>& evse) const override;
+    bool is_valid_evse(const EVSE& evse) const override;
 
     EvseIterator begin() override;
     EvseIterator end() override;
