@@ -22,6 +22,8 @@ set(TEST_PROFILES_LOCATION_V16 "${CMAKE_CURRENT_BINARY_DIR}/resources/profiles/v
 set(TEST_PROFILES_LOCATION_V201 "${CMAKE_CURRENT_BINARY_DIR}/resources/profiles/v201")
 
 
+append_coverage_compiler_flags_to_target(ocpp)
+
 add_executable(libocpp_unit_tests
     config/v201/resources_wrong/component_config_required_no_value/standardized/UnitTestCtrlr.json)
 
