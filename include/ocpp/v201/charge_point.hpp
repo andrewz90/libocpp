@@ -12,6 +12,7 @@
 #include <ocpp/v201/functional_blocks/data_transfer.hpp>
 #include <ocpp/v201/functional_blocks/reservation.hpp>
 #include <ocpp/v201/functional_blocks/security.hpp>
+#include <ocpp/v201/functional_blocks/smart_charging.hpp>
 
 #include <ocpp/common/aligned_timer.hpp>
 #include <ocpp/common/charging_station_base.hpp>
@@ -35,7 +36,6 @@
 #include <ocpp/v201/messages/Authorize.hpp>
 #include <ocpp/v201/messages/BootNotification.hpp>
 #include <ocpp/v201/messages/ChangeAvailability.hpp>
-#include <ocpp/v201/messages/ClearChargingProfile.hpp>
 #include <ocpp/v201/messages/ClearDisplayMessage.hpp>
 #include <ocpp/v201/messages/ClearVariableMonitoring.hpp>
 #include <ocpp/v201/messages/CostUpdated.hpp>
@@ -43,8 +43,6 @@
 #include <ocpp/v201/messages/DataTransfer.hpp>
 #include <ocpp/v201/messages/DeleteCertificate.hpp>
 #include <ocpp/v201/messages/GetBaseReport.hpp>
-#include <ocpp/v201/messages/GetChargingProfiles.hpp>
-#include <ocpp/v201/messages/GetCompositeSchedule.hpp>
 #include <ocpp/v201/messages/GetDisplayMessages.hpp>
 #include <ocpp/v201/messages/GetInstalledCertificateIds.hpp>
 #include <ocpp/v201/messages/GetLog.hpp>
@@ -59,11 +57,9 @@
 #include <ocpp/v201/messages/NotifyEvent.hpp>
 #include <ocpp/v201/messages/NotifyMonitoringReport.hpp>
 #include <ocpp/v201/messages/NotifyReport.hpp>
-#include <ocpp/v201/messages/ReportChargingProfiles.hpp>
 #include <ocpp/v201/messages/RequestStartTransaction.hpp>
 #include <ocpp/v201/messages/RequestStopTransaction.hpp>
 #include <ocpp/v201/messages/Reset.hpp>
-#include <ocpp/v201/messages/SetChargingProfile.hpp>
 #include <ocpp/v201/messages/SetDisplayMessage.hpp>
 #include <ocpp/v201/messages/SetMonitoringBase.hpp>
 #include <ocpp/v201/messages/SetMonitoringLevel.hpp>
@@ -340,12 +336,6 @@ public:
     virtual std::map<SetVariableData, SetVariableResult>
     set_variables(const std::vector<SetVariableData>& set_variable_data_vector, const std::string& source) = 0;
 
-    /// \brief Gets a composite schedule based on the given \p request
-    /// \param request specifies different options for the request
-    /// \return GetCompositeScheduleResponse containing the status of the operation and the composite schedule if the
-    /// operation was successful
-    virtual GetCompositeScheduleResponse get_composite_schedule(const GetCompositeScheduleRequest& request) = 0;
-
     /// \brief Gets composite schedules for all evse_ids (including 0) for the given \p duration and \p unit . If no
     /// valid profiles are given for an evse for the specified period, the composite schedule will be empty for this
     /// evse.
@@ -389,6 +379,7 @@ private:
     std::unique_ptr<ReservationInterface> reservation;
     std::unique_ptr<AuthorizationInterface> authorization;
     std::unique_ptr<SecurityInterface> security;
+    std::unique_ptr<SmartCharging> smart_charging;
 
     // utility
     std::shared_ptr<MessageQueue<v201::MessageType>> message_queue;
@@ -471,10 +462,6 @@ private:
     void update_dm_availability_state(const int32_t evse_id, const int32_t connector_id,
                                       const ConnectorStatusEnum status);
     void update_dm_evse_power(const int32_t evse_id, const MeterValue& meter_value);
-
-    GetCompositeScheduleResponse
-    get_composite_schedule_internal(const GetCompositeScheduleRequest& request,
-                                    const std::set<ChargingProfilePurposeEnum>& profiles_to_ignore = {});
 
     void message_callback(const std::string& message);
     void update_aligned_data_interval();
@@ -652,12 +639,6 @@ private:
     void meter_values_req(const int32_t evse_id, const std::vector<MeterValue>& meter_values,
                           const bool initiated_by_trigger_message = false);
 
-    // Functional Block K: Smart Charging
-    void report_charging_profile_req(const int32_t request_id, const int32_t evse_id,
-                                     const ChargingLimitSourceEnum source, const std::vector<ChargingProfile>& profiles,
-                                     const bool tbc);
-    void report_charging_profile_req(const ReportChargingProfilesRequest& req);
-
     // Functional Block N: Diagnostics
     void notify_event_req(const std::vector<EventData>& events);
     void notify_customer_information_req(const std::string& data, const int32_t request_id);
@@ -690,12 +671,6 @@ private:
 
     // Functional Block I: TariffAndCost
     void handle_costupdated_req(const Call<CostUpdatedRequest> call);
-
-    // Functional Block K: Smart Charging
-    void handle_set_charging_profile_req(Call<SetChargingProfileRequest> call);
-    void handle_clear_charging_profile_req(Call<ClearChargingProfileRequest> call);
-    void handle_get_charging_profiles_req(Call<GetChargingProfilesRequest> call);
-    void handle_get_composite_schedule_req(Call<GetCompositeScheduleRequest> call);
 
     // Functional Block L: Firmware management
     void handle_firmware_update_req(Call<UpdateFirmwareRequest> call);
@@ -913,8 +888,6 @@ public:
 
     std::map<SetVariableData, SetVariableResult>
     set_variables(const std::vector<SetVariableData>& set_variable_data_vector, const std::string& source) override;
-
-    GetCompositeScheduleResponse get_composite_schedule(const GetCompositeScheduleRequest& request) override;
 
     std::vector<CompositeSchedule> get_all_composite_schedules(const int32_t duration,
                                                                const ChargingRateUnitEnum& unit) override;
