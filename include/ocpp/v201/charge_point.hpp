@@ -11,6 +11,7 @@
 #include <ocpp/v201/functional_blocks/authorization.hpp>
 #include <ocpp/v201/functional_blocks/availability.hpp>
 #include <ocpp/v201/functional_blocks/data_transfer.hpp>
+#include <ocpp/v201/functional_blocks/firmware_update.hpp>
 #include <ocpp/v201/functional_blocks/reservation.hpp>
 #include <ocpp/v201/functional_blocks/security.hpp>
 
@@ -73,7 +74,6 @@
 #include <ocpp/v201/messages/TransactionEvent.hpp>
 #include <ocpp/v201/messages/TriggerMessage.hpp>
 #include <ocpp/v201/messages/UnlockConnector.hpp>
-#include <ocpp/v201/messages/UpdateFirmware.hpp>
 
 #include "component_state_manager.hpp"
 
@@ -125,13 +125,6 @@ public:
     /// \param ocpp_interface       The interface that is disconnected.
     ///
     virtual void on_network_disconnected(OCPPInterfaceEnum ocpp_interface) = 0;
-
-    /// \brief Chargepoint notifies about new firmware update status firmware_update_status. This function should be
-    ///        called during a Firmware Update to indicate the current firmware_update_status.
-    /// \param request_id   The request_id. When it is -1, it will not be included in the request.
-    /// \param firmware_update_status The firmware_update_status
-    virtual void on_firmware_update_status_notification(int32_t request_id,
-                                                        const FirmwareStatusEnum& firmware_update_status) = 0;
 
     /// \brief Event handler that should be called when a session has started
     /// \param evse_id
@@ -364,6 +357,7 @@ private:
     std::unique_ptr<AvailabilityInterface> availability;
     std::unique_ptr<AuthorizationInterface> authorization;
     std::unique_ptr<SecurityInterface> security;
+    std::unique_ptr<FirmwareUpdateInterface> firmware_update;
 
     // utility
     std::shared_ptr<MessageQueue<v201::MessageType>> message_queue;
@@ -379,11 +373,6 @@ private:
 
     // states
     std::atomic<RegistrationStatusEnum> registration_status;
-    FirmwareStatusEnum firmware_status;
-    // The request ID in the last firmware update status received
-    std::optional<int32_t> firmware_status_id;
-    // The last firmware status which will be posted before the firmware is installed.
-    FirmwareStatusEnum firmware_status_before_installing = FirmwareStatusEnum::SignatureVerified;
     UploadLogStatusEnum upload_log_status;
     int32_t upload_log_status_id;
     BootReasonEnum bootreason;
@@ -466,15 +455,6 @@ private:
 
     MeterValue get_latest_meter_value_filtered(const MeterValue& meter_value, ReadingContextEnum context,
                                                const RequiredComponentVariable& component_variable);
-
-    /// \brief Changes all unoccupied connectors to unavailable. If a transaction is running schedule an availabilty
-    /// change
-    /// If all connectors are unavailable signal to the firmware updater that installation of the firmware update can
-    /// proceed
-    void change_all_connectors_to_unavailable_for_firmware_update();
-
-    /// \brief Restores all connectors to their persisted state
-    void restore_all_connector_states();
 
     ///
     /// \brief Get evseid for the given transaction id.
@@ -632,9 +612,6 @@ private:
     void handle_get_charging_profiles_req(Call<GetChargingProfilesRequest> call);
     void handle_get_composite_schedule_req(Call<GetCompositeScheduleRequest> call);
 
-    // Functional Block L: Firmware management
-    void handle_firmware_update_req(Call<UpdateFirmwareRequest> call);
-
     // Functional Block M: ISO 15118 Certificate Management
     void handle_get_installed_certificate_ids_req(Call<GetInstalledCertificateIdsRequest> call);
     void handle_install_certificate_req(Call<InstallCertificateRequest> call);
@@ -756,9 +733,6 @@ public:
     virtual void disconnect_websocket() override;
 
     void on_network_disconnected(OCPPInterfaceEnum ocpp_interface) override;
-
-    void on_firmware_update_status_notification(int32_t request_id,
-                                                const FirmwareStatusEnum& firmware_update_status) override;
 
     void on_session_started(const int32_t evse_id, const int32_t connector_id) override;
 

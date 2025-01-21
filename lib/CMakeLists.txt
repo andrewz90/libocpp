@@ -98,6 +98,7 @@ if(LIBOCPP_ENABLE_V201)
             ocpp/v201/functional_blocks/availability.cpp
             ocpp/v201/functional_blocks/security.cpp
             ocpp/v201/functional_blocks/data_transfer.cpp
+            ocpp/v201/functional_blocks/firmware_update.cpp
             ocpp/v201/functional_blocks/reservation.cpp
     )
     add_subdirectory(ocpp/v201/messages)
