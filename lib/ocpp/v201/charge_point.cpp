@@ -379,7 +379,7 @@ void ChargePoint::on_transaction_finished(const int32_t evse_id, const DateTime&
             }
 
             if (is_charging) {
-                this->availability->set_evse_connectors_unavailable(evse_handle, false);
+                set_evse_connectors_unavailable(evse_handle, false);
             } else {
                 send_reset = true;
             }
@@ -1260,7 +1260,7 @@ void ChargePoint::change_all_connectors_to_unavailable_for_firmware_update() {
         // execute change availability if possible
         for (auto& evse : *this->evse_manager) {
             if (!evse.has_active_transaction()) {
-                this->availability->set_evse_connectors_unavailable(evse, false);
+                set_evse_connectors_unavailable(evse, false);
             }
         }
         // Check succeeded, trigger the callback if needed
@@ -1272,7 +1272,7 @@ void ChargePoint::change_all_connectors_to_unavailable_for_firmware_update() {
         // put all EVSEs to unavailable that do not have active transaction
         for (auto& evse : *this->evse_manager) {
             if (!evse.has_active_transaction()) {
-                this->availability->set_evse_connectors_unavailable(evse, false);
+                set_evse_connectors_unavailable(evse, false);
             } else {
                 EVSE e;
                 e.id = evse.get_id();
@@ -2106,7 +2106,7 @@ void ChargePoint::handle_reset_req(Call<ResetRequest> call) {
         } else if (msg.type == ResetEnum::OnIdle and !evse_no_transactions.empty()) {
             for (const int32_t evse_id : evse_no_transactions) {
                 auto& evse = this->evse_manager->get_evse(evse_id);
-                this->availability->set_evse_connectors_unavailable(evse, false);
+                set_evse_connectors_unavailable(evse, false);
             }
         }
     }
