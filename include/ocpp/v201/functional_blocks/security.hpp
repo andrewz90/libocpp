@@ -39,6 +39,14 @@ public:
     void handle_message(const EnhancedMessage<MessageType>& message) override;
     virtual void stop_certificate_signed_timer() override;
 
+    /* OCPP message requests */
+    virtual void security_event_notification_req(const CiString<50>& event_type,
+                                                 const std::optional<CiString<255>>& tech_info,
+                                                 const bool triggered_internally, const bool critical,
+                                                 const std::optional<DateTime>& timestamp = std::nullopt) override;
+    virtual void sign_certificate_req(const ocpp::CertificateSigningUseEnum& certificate_signing_use,
+                                      const bool initiated_by_trigger_message = false) override;
+
 private: // Members
     MessageDispatcherInterface<MessageType>& message_dispatcher;
     DeviceModel& device_model;
@@ -54,14 +62,6 @@ private: // Members
     Everest::SteadyTimer certificate_signed_timer;
 
 private: // Functions
-    /* OCPP message requests */
-    virtual void security_event_notification_req(const CiString<50>& event_type,
-                                                 const std::optional<CiString<255>>& tech_info,
-                                                 const bool triggered_internally, const bool critical,
-                                                 const std::optional<DateTime>& timestamp = std::nullopt) override;
-    virtual void sign_certificate_req(const ocpp::CertificateSigningUseEnum& certificate_signing_use,
-                                      const bool initiated_by_trigger_message = false) override;
-
     /* OCPP message handlers */
     void handle_certificate_signed_req(Call<CertificateSignedRequest> call);
     void handle_sign_certificate_response(CallResult<SignCertificateResponse> call_result);
